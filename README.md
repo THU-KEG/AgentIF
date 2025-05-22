@@ -22,8 +22,12 @@ An example instruction of AgentIF:
 For each instruction, we annotate the associated constraints and corresponding evaluation metrics, including code-based evaluation, LLM-based evaluation, and hybrid code-LLM evaluation.
 
 ### How to evaluation
+1. Clone the remote repository to your local environment. The necessary data is already included, so no further actions are needed.
+    ```
+    git clone https://github.com/THU-KEG/AgentIF.git
+    ```
 
-1. Specify the target model and the evaluator in the `run.sh`  file. We recommend using `gpt-4o-2024-11-20` to reproduce our results.
+2. Specify the target model and the evaluator in the `run.sh`  file. We recommend using `gpt-4o-2024-11-20` to reproduce our results.
     
     ```
     Model_Name=""
@@ -35,7 +39,7 @@ For each instruction, we annotate the associated constraints and corresponding e
     Evaluator_API_Key=""
     ```
     
-2. Then run the script to start the evaluation.
+3. Then run the script to start the evaluation.
     
     ```
     sh run.sh

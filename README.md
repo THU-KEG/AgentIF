@@ -26,24 +26,37 @@ For each instruction, we annotate the associated constraints and corresponding e
     ```
     git clone https://github.com/THU-KEG/AgentIF.git
     ```
+    
+2. (Optional) To evaluate a model hosted locally, deploy it using vLLM. Use a command similar to the following:
+    ```bash
+    CUDA_VISIBLE_DEVICES=<CUDA_ID> vllm serve "<your_model_path>" \
+        --served-model-name <your_model_name> \
+        --port 8008 \
+        --tensor-parallel-size <num_gpus> \
+        --max-model-len 32000 \
+        --gpu-memory-utilization 0.9
+    ```
 
-2. Specify the target model and the evaluator in the `run.sh`  file. We recommend using `gpt-4o-2024-11-20` to reproduce our results.
-    
-    ```
-    Model_Name="" # the model you want to evaluation
-    Model_Name_URL="" # the url (openai url or local vllm url)
-    Model_Name_API_Key="EMPTY" # if local vllm url then EMPTY else your key
-    
-    Evaluator_Model_Backbone="" # the evaluator model, using `gpt-4o-2024-11-20` to reproduce our results.
-    Evaluator_URL="" # your base url, using `https://api.openai.com/v1` to reproduce our results.
-    Evaluator_API_Key="" # your key
-    ```
+
+2. Specify the target model and the evaluator in the `run.sh` file. To reproduce our results, we recommend using `gpt-4o-2024-11-20`.
+
+   ```
+   Model_Name=""             # Name of the model to evaluate
+   Model_Name_URL=""         # Endpoint of the model (e.g., OpenAI API URL or local vLLM URL)
+   Model_Name_API_Key="EMPTY" # Set to "EMPTY" for local vLLM; otherwise, provide your API key
+
+   Evaluator_Model_Backbone=""  # Name of the evaluator model; use `gpt-4o-2024-11-20` for reproducibility
+   Evaluator_URL=""             # Base URL of the evaluator; use `https://api.openai.com/v1` to match our setup
+   Evaluator_API_Key=""         # API key for the evaluator
+   ```
     
 3. Then run the script to start the evaluation.
     
     ```
     sh run.sh
     ```
+
+
 
 ## Citation
 

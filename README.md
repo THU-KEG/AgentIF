@@ -30,13 +30,13 @@ For each instruction, we annotate the associated constraints and corresponding e
 2. Specify the target model and the evaluator in the `run.sh`  file. We recommend using `gpt-4o-2024-11-20` to reproduce our results.
     
     ```
-    Model_Name=""
-    Model_Name_URL=""
-    Model_Name_API_Key="EMPTY"
+    Model_Name="" # the model you want to evaluation
+    Model_Name_URL="" # the url (openai url or local vllm url)
+    Model_Name_API_Key="EMPTY" # if local vllm url then EMPTY else your key
     
-    Evaluator_Model_Backbone=""
-    Evaluator_URL=""
-    Evaluator_API_Key=""
+    Evaluator_Model_Backbone="" # the evaluator model, using `gpt-4o-2024-11-20` to reproduce our results.
+    Evaluator_URL="" # your base url, using `https://api.openai.com/v1` to reproduce our results.
+    Evaluator_API_Key="" # your key
     ```
     
 3. Then run the script to start the evaluation.

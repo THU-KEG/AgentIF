@@ -15,7 +15,7 @@ class APIModel:
         self.model_name = model_name
         self.cache = cache
 
-    def generate(self, query, max_tokens=32000, temperature=0.0):
+    def generate(self, query, max_tokens=8192, temperature=0.0):
         # import pdb; pdb.set_trace()
         
         if temperature == 0.0:
@@ -49,7 +49,7 @@ class APIModel:
                         response = None
         return response
 
-    def generate_chat(self, messages, max_tokens=32000, temperature=0.0):
+    def generate_chat(self, messages, max_tokens=8192, temperature=0.0):
         if temperature == 0.0:
             response = self.cache.check_prompt(messages[-1]["content"])
         else:
@@ -68,22 +68,3 @@ class APIModel:
                 print(e)
                 response = None
         return response
-
-# test
-# cache = Cache("/data1/qyj/RealIF/data/.cache/new_test.pkl")
-# base_url = "https://svip-hk.xty.app/v1"
-# model_name = "o1-preview-2024-09-12"
-# api_key = "sk-vP85CSMGSmkzxyoDN4zIxzzExvWjoKcDW8o15kJVftnaFQHO"
-# model = APIModel(cache, base_url, model_name, api_key)
-# messages = [
-#     {
-#         "role": "system",
-#         "content": "You are a helpful assistant."
-#     },
-#     {
-#         "role": "user",
-#         "content": "Hello, world!"
-#     }
-# ]
-# response = model.generate_chat(messages)
-# print(response)

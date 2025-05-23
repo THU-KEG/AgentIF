@@ -61,5 +61,13 @@ For each instruction, we annotate the associated constraints and corresponding e
 ## Citation
 
 ```
-# TODO
+@misc{qi2025agentifbenchmarkinginstructionfollowing,
+      title={AGENTIF: Benchmarking Instruction Following of Large Language Models in Agentic Scenarios}, 
+      author={Yunjia Qi and Hao Peng and Xiaozhi Wang and Amy Xin and Youfeng Liu and Bin Xu and Lei Hou and Juanzi Li},
+      year={2025},
+      eprint={2505.16944},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2505.16944}, 
+}
 ```

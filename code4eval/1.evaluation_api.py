@@ -57,7 +57,7 @@ def code_checker(function, response):
     return execute_function(function, response)
 
 
-def llm_checker(model, response, prompt, llm_checker_type = "llm"):
+def llm_checker(model, response, prompt, llm_checker_type="llm"):
     try:
         if "{response}" not in prompt:
             prompt += "\n\nHere is model response: {response}"
@@ -74,7 +74,7 @@ def llm_checker(model, response, prompt, llm_checker_type = "llm"):
         #             pass
         #     if constraint_desc:
         #         prompt += f"\n\n\n# Repeat the Instruction\nPlease read the above response, and carefully check if it satisfies the following question: {constraint_desc}"
-        
+
         response = model.generate(prompt, temperature=0.0)
         if "</think>" in response:
             response = response.split("</think>")[1].strip()
@@ -86,7 +86,7 @@ def llm_checker(model, response, prompt, llm_checker_type = "llm"):
         return None
 
 
-def process_item(args_tuple):
+def process_item(args_tuple, args):
     # print("in")
     vert = args_tuple
     cache_obj = Cache(args.cache)
@@ -102,17 +102,18 @@ def process_item(args_tuple):
             if "</think>" in response:
                 response = response.split("</think>")[1].strip()
 
-            for e in item["evaluation"]: 
+            for e in item["evaluation"]:
                 if e["type"] == "llm_conditional_check":
-                    condition_response = llm_checker(model, response, e["exec"], llm_checker_type = "llm_conditional_check")
+                    condition_response = llm_checker(model, response, e["exec"],
+                                                     llm_checker_type="llm_conditional_check")
                     if "YES" in condition_response:
                         continue
                     else:
                         vert["constraints"][j]["score"] = None
                         break
-            
+
                 if e["type"] == "llm":
-                    response = llm_checker(model, response, e["exec"], llm_checker_type = "llm")
+                    response = llm_checker(model, response, e["exec"], llm_checker_type="llm")
                     if not response:
                         response = None
                         break
@@ -160,7 +161,7 @@ def main(args):
     results = []
     with ProcessPoolExecutor(max_workers=args.num_workers) as executor:
         futures = [
-            executor.submit(process_item, (vert))
+            executor.submit(process_item, vert, args)
             for vert in data
         ]
         for future in tqdm(as_completed(futures), total=len(futures)):
@@ -270,7 +271,6 @@ def main(args):
     print(f" Errors by dimension saved to: {errors_file}")
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process constraints with parallel execution.")
     parser.add_argument("--input_file", type=str, required=True, help="Input JSON file path")
@@ -280,7 +280,6 @@ if __name__ == "__main__":
     parser.add_argument("--llm_url", type=str, default="", help="LLM API URL")
     parser.add_argument("--api_key", type=str, default="", help="LLM API key")
     parser.add_argument("--num_workers", type=int, default=os.cpu_count(), help="Number of worker processes")
-    
 
     args = parser.parse_args()
 

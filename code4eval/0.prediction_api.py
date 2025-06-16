@@ -1,4 +1,3 @@
-
 import json
 import argparse
 from pathlib import Path
@@ -9,42 +8,52 @@ from cache import Cache
 from model import APIModel
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+
 def process_single_entry(vert, args):
     cache_obj = Cache(args.cache)
     model = APIModel(cache_obj, args.llm_url, args.llm_backbone, api_key=args.api_key)
     input_msgs = vert["input"]
-    
+
     for item in input_msgs:
         assert item["role"] == "user" or item["role"] == "system" or item["role"] == "assistant", print(vert["input"])
         if item["role"] == "developer":
-            import pdb; pdb.set_trace()
-            
+            import pdb;
+            pdb.set_trace()
+
     assert input_msgs[-1]["role"] == "user", print(vert["input"])
     assert input_msgs[-1]["content"] != "", print(vert["input"])
 
     response = model.generate_chat(input_msgs, max_tokens=args.max_tokens)
-    if not response: #过滤了infer失败的case
+    dump = response
+    if not response:  # 过滤了infer失败的case
         return None
 
     # import pdb; pdb.set_trace()
     if "</think>" in response:
         response = response.split("</think>")[1].strip()
 
+    # begin final response is a substring of the response
+    if '[BEGIN FINAL RESPONSE]' in response:
+        response = response.split('[BEGIN FINAL RESPONSE]')[1].strip()
+
     vert["output"] = {
         "content": response.strip(),
-        "model_name": args.llm_backbone
+        "model_name": args.llm_backbone,
+        "dump": dump
     }
     model.cache.save_cache()
+    print("Output generated for entry:", vert)
     return vert
 
-def main(args):
 
+def main(args):
     for file_path in os.listdir(args.input_dir):
         full_path = os.path.join(args.input_dir, file_path)
         with open(full_path, 'r', encoding='utf-8') as file:
-            print("Processing:",full_path)
+            print("Processing:", full_path)
             data = json.load(file)
-            
+            # select first 10
+            data = data[:10]
             results = []
             with ThreadPoolExecutor(max_workers=8) as executor:
                 futures = [executor.submit(process_single_entry, vert, args) for vert in data]
@@ -62,10 +71,11 @@ def main(args):
 
             with open(output_path, "w", encoding="utf-8") as out_file:
                 json.dump(results, out_file, indent=4, ensure_ascii=False)
-            
-            print("Successfully process:",len(results))
+
+            print("Successfully process:", len(results))
 
     print("total_number:", len(results))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Multithreaded Conditional Checker")

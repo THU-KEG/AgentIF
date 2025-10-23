@@ -60,10 +60,6 @@ For each instruction, we annotate the associated constraints and corresponding e
 Each data instance in AgentIF is structured as follows:
 ```
 {
-  "domain": "lawglm",
-  "query_id": 0,
-  "turn_id": 0,
-  "prompt_type": "Thought_prompt",
   "input": [
     { "role": "system", "content": "..." },
     { "role": "user",   "content": "..." }

@@ -56,7 +56,43 @@ For each instruction, we annotate the associated constraints and corresponding e
     sh run.sh
     ```
 
-
+## Data Format
+Each data instance in AgentIF is structured as follows:
+```
+{
+  "domain": "lawglm",
+  "query_id": 0,
+  "turn_id": 0,
+  "prompt_type": "Thought_prompt",
+  "input": [
+    { "role": "system", "content": "..." },
+    { "role": "user",   "content": "..." }
+  ],
+  "constraints": [
+    {
+      "id": 0,
+      "desc": "...",                // Constraint description
+      "other_info": {               // Auxiliary information for evaluation
+        "...": "..."
+      },
+      "dimension": "...",           // Constraint Presentation Type
+      "type": "...",                // Constraint Type
+      "is_meta": false,             // Whether it is a meta-constraint
+      "evaluation": [               // Evaluation Method
+        {
+          "type": "llm",            // LLM-based evaluation
+          "required_keys": ["response"],
+          "exec": "..."             // Evaluation prompt for LLM
+        },
+        {
+          "type": "code",           // Code-based evaluation
+          "exec": "..."             // Executable code snippet
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## Citation
 

@@ -5,9 +5,6 @@
     📚 <a href="https://arxiv.org/abs/2505.16944" target="_blank">AgentIF Paper</a> • 
     📊 <a href="https://huggingface.co/datasets/THU-KEG/AgentIF" target="_blank">AgentIF Dataset</a>
 </p>
-<p align="center">
-    📖 <a href="https://arxiv.org/abs/2308.14508" target="_blank">LongBench Paper</a> • 🤗 <a href="https://huggingface.co/datasets/THUDM/LongBench" target="_blank">LongBench Dataset</a>
-</p>
 
 
 ---

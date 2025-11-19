@@ -1,5 +1,15 @@
 ![Logo](images/logo.png)
 
+<p align="center">
+    🌐 <a href="https://agentif.github.io" target="_blank">Project Page</a> • 
+    📚 <a href="https://arxiv.org/abs/2505.16944" target="_blank">AgentIF Paper</a> • 
+    📊 <a href="https://huggingface.co/datasets/THU-KEG/AgentIF" target="_blank">AgentIF Dataset</a>
+</p>
+<p align="center">
+    📖 <a href="https://arxiv.org/abs/2308.14508" target="_blank">LongBench Paper</a> • 🤗 <a href="https://huggingface.co/datasets/THUDM/LongBench" target="_blank">LongBench Dataset</a>
+</p>
+
+
 ---
 
 We introduce **AgentIF**, the first benchmark for systematically **evaluating LLM instruction following ability in agentic scenarios**. AgentIF features three key characteristics: (1) **Realistic**, constructed from 50 real-world agentic applications. (2) **Long**, averaging 1,723 words with a maximum of 15,630 words. (3) **Complex**, averaging 11.9 constraints per instruction, covering diverse constraint types, such as tool specifications and condition constraints. Here is the instruction length distribution in AgentIF, along with the success rates of several representative LLMs across the constraint dimensions we propose:

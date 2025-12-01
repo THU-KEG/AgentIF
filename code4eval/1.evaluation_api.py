@@ -11,14 +11,23 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import logging
 from cache import Cache
 from model import APIModel
+from collections import defaultdict
+
 
 # 日志配置
+import logging
+from datetime import datetime
+
+# 根据当前时间生成日志文件名
+log_filename = datetime.now().strftime("process_%Y%m%d_%H%M%S.log")
+
 logging.basicConfig(
-    filename='process.log',
+    filename=log_filename,
     filemode='w',
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
+
 
 
 def execute_function(function, response):
@@ -62,23 +71,11 @@ def llm_checker(model, response, prompt, llm_checker_type = "llm"):
         if "{response}" not in prompt:
             prompt += "\n\nHere is model response: {response}"
         prompt = prompt.replace("{response}", response)
-
-        # if llm_checker_type == "llm":
-        #     constraint_desc = ""
-        #     try:
-        #         constraint_desc = prompt.split("Here is model response:")[0].strip()
-        #     except:
-        #         try:
-        #             constraint_desc = prompt.split("response:")[0].strip()
-        #         except:
-        #             pass
-        #     if constraint_desc:
-        #         prompt += f"\n\n\n# Repeat the Instruction\nPlease read the above response, and carefully check if it satisfies the following question: {constraint_desc}"
         
         response = model.generate(prompt, temperature=0.0)
         if "</think>" in response:
             response = response.split("</think>")[1].strip()
-        if model.cache.add_n > 8:
+        if model.cache.add_n > 4:
             model.cache.save_cache()
         return response
     except Exception as e:
@@ -141,6 +138,7 @@ def process_item(args_tuple):
 
     except Exception as e:
         logging.error(f"Processing item error: {e}")
+        # import pdb;pdb.set_trace()
         return vert  # 返回原始数据，避免丢失
 
 
@@ -188,87 +186,119 @@ def main(args):
     print(f"Check 'process.log' for errors and logs.")
 
     #  统计准确率
-    total = 0
-    correct = 0
-    dimension_stats = {}
-    errors_by_dimension = {}
     null_counts = 0
-
+    model_stats = defaultdict(lambda: {"success": 0, "total": 0})
+    csr_stats = {"success": 0, "total": 0}
+    isr_stats =  {"success": 0, "total": 0}
     for vert in results:
+        constraint_scores = []
         for constraint in vert["constraints"]:
-            # try:
-            #     assert "score" in constraint, print(constraint)
-            # except:
-            #     import pdb;pdb.set_trace()
             score = constraint.get("score")
-            dimension = constraint.get("dimension", "unknown")
 
             if score is None:
                 null_counts += 1
                 continue
 
-            total += 1
-            if score:
-                correct += 1
+            constraint_scores.append(score)
 
-            # 初始化维度统计
-            if dimension not in dimension_stats:
-                dimension_stats[dimension] = {"correct": 0, "total": 0}
-                errors_by_dimension[dimension] = []
+            # --- Dimension
+            dim = constraint.get("dimension", "unknown")
+            assert dim in ["unconditional", "conditional", "example_driven"]
+            model_stats[dim]["total"] += 1
+            if score is True:
+                    model_stats[dim]["success"] += 1
 
-            dimension_stats[dimension]["total"] += 1
-            if score:
-                dimension_stats[dimension]["correct"] += 1
-            else:
-                # 收集错误样本
-                errors_by_dimension[dimension].append(constraint)
+            # --- Type
+            if isinstance(constraint["type"], str):
+                t = constraint["type"]
+                model_stats[t]["total"] += 1
+                if score is True:
+                    model_stats[t]["success"] += 1
+            elif isinstance(constraint["type"], list):
+                for t in constraint["type"]:
+                    assert t in ["formatting", "semantic", "resource"]
+                    model_stats[t]["total"] += 1
+                    if score is True:
+                        model_stats[t]["success"] += 1
+            
 
+            # --- Meta
+            if constraint.get("is_meta", False):
+                model_stats["meta"]["total"] += 1
+                if score is True:
+                    model_stats["meta"]["success"] += 1
+            
+            # --- CSR
+            csr_stats["total"] += 1
+            if score is True:
+                csr_stats["success"] += 1
+
+        # --- ISR
+        if len(constraint_scores) > 0:
+            isr_stats["total"] += 1
+            # import pdb;pdb.set_trace()
+            if all(constraint_scores):
+                isr_stats["success"] += 1
+
+    map_constraint = {
+        "unconditional": "vanilla",
+        "conditional": "condition", 
+        "example_driven": "example",
+        "formatting": "formatting", 
+        "semantic": "semantic", 
+        "resource": "tool",
+    }
     #  准备 accuracy.json
     accuracy_report = {
-        "overall": {
-            "accuracy": correct / total if total > 0 else 0,
-            "correct": correct,
-            "total": total
+        "CSR": {
+            "accuracy": csr_stats["success"] / csr_stats["total"] if csr_stats["total"] > 0 else 0,
+            "correct": csr_stats["success"],
+            "total": csr_stats["total"]
         },
-        "by_dimension": {}
+        "ISR": {
+            "accuracy": isr_stats["success"] / isr_stats["total"] if isr_stats["total"] > 0 else 0,
+            "correct": isr_stats["success"],
+            "total": isr_stats["total"]
+        },
+        "by_constraint_presentation_type (dimension)": {},
+        "by_constraint_type": {}
     }
-    print(f"\nNull Constraints counts: {null_counts}")
-    print("\n Overall accuracy:")
-    print(f"  Accuracy: {accuracy_report['overall']['accuracy']:.4f} ({correct}/{total})")
 
-    print("\n Accuracy by dimension:")
-    for dimension, stats in dimension_stats.items():
-        accuracy = stats["correct"] / stats["total"] if stats["total"] > 0 else 0
-        accuracy_report["by_dimension"][dimension] = {
+    print("\n Accuracy by Dimension:")
+    for dimension in ["unconditional", "conditional", "example_driven"]:
+        stats = model_stats[dimension]
+        accuracy = stats["success"] / stats["total"] if stats["total"] > 0 else 0
+        accuracy_report["by_constraint_presentation_type (dimension)"][map_constraint[dimension]] = {
             "accuracy": accuracy,
-            "correct": stats["correct"],
+            "correct": stats["success"],
             "total": stats["total"]
         }
-        print(f"  - {dimension}: {accuracy:.4f} ({stats['correct']}/{stats['total']})")
+        print(f"  - {dimension}: {accuracy:.4f} ({stats['success']}/{stats['total']})")
 
+    print("\n Accuracy by Type:")
+    for dimension in ["formatting", "semantic", "resource"]:
+        stats = model_stats[dimension]
+        accuracy = stats["success"] / stats["total"] if stats["total"] > 0 else 0
+        accuracy_report["by_constraint_presentation_type (dimension)"][map_constraint[dimension]] = {
+            "accuracy": accuracy,
+            "correct": stats["success"],
+            "total": stats["total"]
+        }
+        print(f"  - {dimension}: {accuracy:.4f} ({stats['success']}/{stats['total']})")
+
+    print(f"\nNull Constraints counts: {null_counts}")
+    print("\n CSR accuracy:")
+    print(f"Constraint Success Rate (CSR) Accuracy: {accuracy_report['CSR']['accuracy']:.4f}")
+    print(f"Instruction Success Rate (ISR) Accuracy: {accuracy_report['ISR']['accuracy']:.4f}")
+
+
+    # print(accuracy_report)
     #  保存 accuracy.json
     accuracy_file = os.path.join(output_folder, f"accuracy.json")
     with open(accuracy_file, "w", encoding="utf-8") as acc_file:
         json.dump(accuracy_report, acc_file, indent=4, ensure_ascii=False)
 
     print(f"\n Accuracy report saved to: {accuracy_file}")
-
-    #  截断错误样本保存
-    max_errors = 100
-    truncated_errors = {}
-    for dimension, errors in errors_by_dimension.items():
-        if len(errors) > max_errors:
-            logging.info(f"Dimension '{dimension}' has {len(errors)} errors, truncating to {max_errors}.")
-            truncated_errors[dimension] = errors[:max_errors]
-        else:
-            truncated_errors[dimension] = errors
-
-    errors_file = os.path.join(output_folder, f"errors_by_dimension.json")
-    with open(errors_file, "w", encoding="utf-8") as err_file:
-        json.dump(truncated_errors, err_file, indent=4, ensure_ascii=False)
-
-    print(f" Errors by dimension saved to: {errors_file}")
-
 
 
 if __name__ == "__main__":

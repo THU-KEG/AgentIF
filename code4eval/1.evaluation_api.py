@@ -83,9 +83,8 @@ def llm_checker(model, response, prompt, llm_checker_type = "llm"):
         return None
 
 
-def process_item(args_tuple):
+def process_item(vert, args):
     # print("in")
-    vert = args_tuple
     cache_obj = Cache(args.cache)
     model = APIModel(cache_obj, args.llm_url, args.llm_backbone, args.api_key)
     # import pdb;pdb.set_trace()
@@ -158,7 +157,7 @@ def main(args):
     results = []
     with ProcessPoolExecutor(max_workers=args.num_workers) as executor:
         futures = [
-            executor.submit(process_item, (vert))
+            executor.submit(process_item, vert, args)
             for vert in data
         ]
         for future in tqdm(as_completed(futures), total=len(futures)):

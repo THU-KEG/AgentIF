@@ -181,9 +181,9 @@ def process_single_entry(vert, args):
             extra_body=extra_body,
             use_cache=not args.no_cache,
         )
-    if response is None and getattr(model, "last_error", None):  # API failed after all retries -> instruction dropped (scored as an empty response later)
+    if response is None and getattr(model, "last_error", None):  # API failed after all retries -> this instruction fails; main() counts consecutive failures
         print(f"api failed after retries: {model.last_error[:200]}")
-        return None
+        return {"__failed__": model.last_error}
     if not response:      # API succeeded but no final answer (e.g. the thinking budget was exhausted) -> keep as an empty response
         print(f"empty response (finish_reason={model.last_finish_reason}, reasoning_len={len(model.last_reasoning or '')})")
         response = ""
@@ -207,6 +207,34 @@ def process_single_entry(vert, args):
     model.cache.save_cache()
     return vert
 
+PREDICTION_FAIL_EXIT_CODE = 3
+FATAL_API_ERROR = re.compile(r"401|402|403|insufficient|balance|quota|unauthorized|invalid.{0,20}(api.?key|token)|billing|arrears", re.I)
+
+
+def _item_key(vert):
+    """Same key as 1.evaluation_api._item_key (agent_name + input + constraint set); aligns checkpointed items on resume."""
+    cons = [(c.get("id"), c.get("desc"), c.get("dimension"), json.dumps(c.get("type"), sort_keys=True))
+            for c in vert["constraints"]]
+    return json.dumps([vert.get("agent_name"), vert["input"], cons], ensure_ascii=False, sort_keys=True)
+
+
+def load_partial(partial_file):
+    """Load the checkpoint file eval.partial.jsonl (one line per predicted instruction); a truncated last line is dropped."""
+    results = []
+    if not os.path.exists(partial_file):
+        return results
+    with open(partial_file, "r", encoding="utf-8") as f:
+        for i, line in enumerate(f):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                results.append(json.loads(line))
+            except json.JSONDecodeError:
+                print(f"[resume] {partial_file} line {i + 1} is truncated, dropped", flush=True)
+    return results
+
+
 def main(args):
 
     for file_path in os.listdir(args.input_dir):
@@ -214,51 +242,92 @@ def main(args):
             continue
         full_path = os.path.join(args.input_dir, file_path)
         with open(full_path, 'r', encoding='utf-8') as file:
-            print("Processing:",full_path)
+            print("Processing:", full_path)
             data = json.load(file)
-            
-            results = []
-            with ThreadPoolExecutor(max_workers=args.num_workers) as executor:
-                futures = [executor.submit(process_single_entry, vert, args) for vert in data]
-                for future in tqdm(as_completed(futures), total=len(futures)):
-                    result = future.result()
-                    if result is not None:
-                        results.append(result)
-            # process_single_entry(data[2], args)
-            # results = []
 
-            output_folder = Path(args.output_dir)
-            output_folder.mkdir(exist_ok=True, parents=True)
-            output_file = file_path
-            output_path = os.path.join(output_folder, output_file)
+        output_folder = Path(args.output_dir)
+        output_folder.mkdir(exist_ok=True, parents=True)
+        output_path = os.path.join(output_folder, file_path)
+        partial_file = os.path.join(output_folder, "eval.partial.jsonl")
 
-            with open(output_path, "w", encoding="utf-8") as out_file:
-                json.dump(results, out_file, indent=4, ensure_ascii=False)
+        # resume support: every finished instruction is appended to eval.partial.jsonl; a re-run only predicts the
+        # remaining instructions, and eval.json is written (and the checkpoint removed) once everything is done
+        results = load_partial(partial_file)
+        if results:
+            done = {}
+            for v in results:
+                k = _item_key(v); done[k] = done.get(k, 0) + 1
+            todo = []
+            for v in data:
+                k = _item_key(v)
+                if done.get(k, 0) > 0:
+                    done[k] -= 1
+                else:
+                    todo.append(v)
+            print(f"[resume] {len(results)} items already predicted in {partial_file}; {len(todo)}/{len(data)} remaining", flush=True)
+        else:
+            todo = data
 
-            # record every sampling / mode parameter of this run for reproducibility
-            top_p, presence_penalty, extra_body = build_sampling(args)
-            run_config = {
-                "llm_backbone": args.llm_backbone,
-                "llm_url": args.llm_url,
-                "temperature": args.temperature,
-                "top_p": top_p,
-                "presence_penalty": presence_penalty,
-                "extra_body": extra_body,
-                "max_tokens": args.max_tokens,
-                "max_model_len": args.max_model_len,
-                "enable_thinking": args.enable_thinking,
-                "no_cache": args.no_cache,
-                "system_prompt_prefix_json": args.system_prompt_prefix_json,
-                "raw_harmony": args.raw_harmony,
-                "num_total": len(data),
-                "num_success": len(results),
-                "num_empty_response": sum(1 for r in results if not (r["output"]["content"] or "").strip()),
-            }
-            with open(os.path.join(output_folder, "run_config.json"), "w", encoding="utf-8") as f:
-                json.dump(run_config, f, indent=4, ensure_ascii=False)
-            
-            n_empty = sum(1 for r in results if not (r["output"]["content"] or "").strip())
-            print("Successfully process:", len(results), "| empty responses:", n_empty, "| api failed:", len(data) - len(results))
+        n_failed = 0
+        consecutive_failed = 0
+        with open(partial_file, "a", encoding="utf-8") as pf, \
+                ThreadPoolExecutor(max_workers=args.num_workers) as executor:
+            futures = [executor.submit(process_single_entry, vert, args) for vert in todo]
+            for future in tqdm(as_completed(futures), total=len(futures)):
+                result = future.result()
+                if result is None:
+                    n_failed += 1
+                    continue
+                if "__failed__" in result:
+                    # the API failed after 3 retries: abort (exit 3) when the failures look like an auth / billing /
+                    # quota problem or when too many instructions fail in a row; finished items are on disk, a re-run resumes
+                    n_failed += 1
+                    consecutive_failed += 1
+                    err = result["__failed__"] or ""
+                    fatal = FATAL_API_ERROR.search(err)
+                    if fatal or consecutive_failed >= args.max_consecutive_failures:
+                        pf.flush()
+                        reason = f"fatal api error: {err[:200]}" if fatal else f"{consecutive_failed} consecutive api failures, last: {err[:200]}"
+                        print(f"\nPREDICTION_ABORTED: {reason} ({len(results)}/{len(data)} instructions done, "
+                              f"saved in {partial_file}; a re-run resumes from here)", flush=True)
+                        for f_ in futures:
+                            f_.cancel()
+                        os._exit(PREDICTION_FAIL_EXIT_CODE)
+                    continue
+                consecutive_failed = 0
+                results.append(result)
+                pf.write(json.dumps(result, ensure_ascii=False) + "\n")   # checkpoint after every instruction
+                pf.flush()
+
+        with open(output_path, "w", encoding="utf-8") as out_file:
+            json.dump(results, out_file, indent=4, ensure_ascii=False)
+
+        # record every sampling / mode parameter of this run for reproducibility
+        top_p, presence_penalty, extra_body = build_sampling(args)
+        run_config = {
+            "llm_backbone": args.llm_backbone,
+            "llm_url": args.llm_url,
+            "temperature": args.temperature,
+            "top_p": top_p,
+            "presence_penalty": presence_penalty,
+            "extra_body": extra_body,
+            "max_tokens": args.max_tokens,
+            "max_model_len": args.max_model_len,
+            "enable_thinking": args.enable_thinking,
+            "no_cache": args.no_cache,
+            "system_prompt_prefix_json": args.system_prompt_prefix_json,
+            "raw_harmony": args.raw_harmony,
+            "num_total": len(data),
+            "num_success": len(results),
+            "num_empty_response": sum(1 for r in results if not (r["output"]["content"] or "").strip()),
+        }
+        with open(os.path.join(output_folder, "run_config.json"), "w", encoding="utf-8") as f:
+            json.dump(run_config, f, indent=4, ensure_ascii=False)
+        if os.path.exists(partial_file):
+            os.remove(partial_file)   # everything predicted: the checkpoint file is no longer needed
+
+        n_empty = run_config["num_empty_response"]
+        print("Successfully process:", len(results), "| empty responses:", n_empty, "| api failed:", len(data) - len(results))
 
     print("total_number:", len(results))
 
@@ -284,6 +353,9 @@ if __name__ == "__main__":
     parser.add_argument("--max_model_len", type=int, default=None,
                         help="max-model-len of the vLLM server; when given, max_tokens is trimmed to the remaining context")
     parser.add_argument("--no_cache", action="store_true", help="do not read or write the response cache (independent repeated runs)")
+    parser.add_argument("--max_consecutive_failures", type=int, default=8,
+                        help="abort the run (exit 3) after this many consecutive instructions failed all 3 API retries; "
+                             "auth / billing / quota errors abort immediately")
     parser.add_argument("--system_prompt_prefix_json", type=str, default=None,
                         help="JSON file ({role: system, content: ...}) prepended to every instruction (vendor-required system prompt)")
     parser.add_argument("--extra_body", type=str, default=None,

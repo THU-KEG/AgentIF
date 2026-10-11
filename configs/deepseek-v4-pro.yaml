@@ -1,0 +1,25 @@
+# DeepSeek-V4-Pro (API, reasoning model)
+# Setting taken from the vendor's agent-benchmark configuration: reasoning_effort=max, T=1.0, top_p=0.95
+# (the vendor's local-deployment default is T=1.0 / top_p=1.0). Temperature may be ignored by the API in thinking mode.
+# Evaluated through an OpenAI-compatible gateway; set the endpoint / key in .env and adjust `api.model` to your provider's id.
+backend: api
+model_name: deepseek-v4-pro
+enabled: true
+prediction_num_workers: 4          # external API: 4 concurrent requests per prediction job (the default 32 is for local vLLM)
+max_parallel_jobs: 3               # at most 3 (mode x run) jobs of this model at the same time; use --sequential across models
+
+api:
+  base_url: https://api.deepseek.com/v1
+  base_url_env: MODEL_BASE_URL
+  api_key: ""
+  api_key_env: MODEL_API_KEY
+  model: deepseek-v4-pro
+
+model_type: thinking_only
+default_mode: thinking
+modes:
+  thinking:
+    temperature: 1.0
+    top_p: 0.95
+    max_tokens: 32768
+    extra_body: {"reasoning_effort": "max"}

@@ -1,0 +1,24 @@
+# Kimi-K3 (API, reasoning model)
+# Vendor benchmark setting (not the general-purpose default): reasoning_effort=max, T=1.0; top_p=0.95 (single-step setting).
+# Evaluated through an OpenAI-compatible gateway; set the endpoint / key in .env and adjust `api.model` to your provider's id.
+backend: api
+model_name: kimi-k3
+enabled: true
+prediction_num_workers: 4          # external API: 4 concurrent requests per prediction job (the default 32 is for local vLLM)
+max_parallel_jobs: 3               # at most 3 (mode x run) jobs of this model at the same time; use --sequential across models
+
+api:
+  base_url: https://api.moonshot.cn/v1
+  base_url_env: MODEL_BASE_URL
+  api_key: ""
+  api_key_env: MODEL_API_KEY
+  model: kimi-k3
+
+model_type: thinking_only
+default_mode: thinking
+modes:
+  thinking:
+    temperature: 1.0
+    top_p: 0.95
+    max_tokens: 32768
+    extra_body: {"reasoning_effort": "max"}

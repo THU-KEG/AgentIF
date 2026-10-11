@@ -1,0 +1,39 @@
+# Qwen3.8-Flash (API, hybrid). The vendor gives explicit sampling recommendations for each mode.
+#   thinking:     T=1.0, top_p=0.95, top_k=20, min_p=0, presence_penalty=0.0, repetition_penalty=1.0; reasoning_effort=medium
+#   non-thinking: T=0.7, top_p=0.80, top_k=20, min_p=0, presence_penalty=1.5, repetition_penalty=1.0; thinking switched off
+#                 with the API field enable_thinking=false
+# Evaluated through an OpenAI-compatible gateway; set the endpoint / key in .env and adjust `api.model` to your provider's id.
+backend: api
+model_name: qwen3.8-flash
+enabled: true
+prediction_num_workers: 4          # external API: 4 concurrent requests per prediction job (the default 32 is for local vLLM)
+max_parallel_jobs: 3               # at most 3 (mode x run) jobs of this model at the same time; use --sequential across models
+
+api:
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  base_url_env: MODEL_BASE_URL
+  api_key: ""
+  api_key_env: MODEL_API_KEY
+  model: qwen3.8-flash
+
+model_type: hybrid
+default_mode: thinking
+modes:
+  thinking:
+    temperature: 1.0
+    top_p: 0.95
+    top_k: 20
+    min_p: 0.0
+    presence_penalty: 0.0
+    repetition_penalty: 1.0
+    max_tokens: 32768
+    extra_body: {"reasoning_effort": "medium"}
+  non_thinking:
+    temperature: 0.7
+    top_p: 0.8
+    top_k: 20
+    min_p: 0.0
+    presence_penalty: 1.5
+    repetition_penalty: 1.0
+    max_tokens: 16384
+    extra_body: {"enable_thinking": false}

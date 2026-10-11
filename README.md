@@ -39,26 +39,26 @@ The exact parameters of every evaluated model are the committed `configs/<model>
 - **Constraint Success Rate (CSR)** measures the proportion of individual constraints that are correctly satisfied by the model's response.
 - **Instruction Success Rate (ISR)** measures the proportion of instructions for which all constraints are satisfied.
 
-> The table below shows the top 10 of the 32 (model, mode) entries evaluated so far (open-weight models from 2B to 31B). The full leaderboard is at **https://agentif.github.io/**; more models will be added.
+> The table below shows the top 10 of the 39 (model, mode) entries evaluated so far (open-weight models from 2B to 31B and several proprietary API models). The full leaderboard is at **https://agentif.github.io/**; more models will be added.
 
-#### Open-weight models — current setting
+#### Current setting
 
 Judge `gpt-5.6-luna`; every (model, mode) is sampled 3 times independently with the vendor-recommended decoding parameters (see `configs/<model>.yaml`). `[T]` = thinking mode, `[N]` = non-thinking mode. ISR and CSR are mean ± sample std over the 3 runs (sorted by ISR); the remaining columns are the mean CSR per constraint presentation type (Vanilla / Condition / Example) and per constraint type (Formatting / Semantic / Tool).
 
 | # | Model | ISR (%) | CSR (%) | Vanilla | Condition | Example | Formatting | Semantic | Tool |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | [T] Qwen3.8-27B | 31.35 ± 0.36 | 65.78 ± 0.42 | 67.03 | 48.91 | 77.37 | 69.31 | 67.17 | 51.98 |
-| 2 | [T] Qwen3.5-9B | 30.36 ± 0.59 | 65.34 ± 0.30 | 66.72 | 48.53 | 76.38 | 69.46 | 65.60 | 53.77 |
-| 3 | [T] gemma-4-31B-it | 29.80 ± 0.33 | 64.81 ± 0.39 | 64.60 | 51.29 | 82.12 | 68.89 | 66.12 | 50.75 |
-| 4 | [T] granite-4.2-3b | 28.95 ± 1.66 | 58.82 ± 0.54 | 63.01 | 39.49 | 53.01 | 60.31 | 58.93 | 53.55 |
-| 5 | [T] gemma-nemotron-4b-bf16-ea | 28.43 ± 0.79 | 62.07 ± 0.19 | 62.62 | 48.20 | 75.22 | 65.30 | 63.03 | 52.19 |
-| 6 | [T] gemma-4-12B-it | 27.86 ± 0.71 | 63.16 ± 0.27 | 64.55 | 50.68 | 68.99 | 64.10 | 65.63 | 52.80 |
-| 7 | [N] gemma-4-E4B-it | 26.87 ± 0.14 | 62.94 ± 0.77 | 64.63 | 50.67 | 67.43 | 65.13 | 65.33 | 48.79 |
-| 8 | [N] Qwen3.8-27B | 26.54 ± 0.22 | 62.01 ± 0.67 | 63.05 | 49.97 | 69.46 | 64.57 | 62.86 | 53.38 |
-| 9 | [T] Qwen3.5-4B | 26.50 ± 0.33 | 62.33 ± 1.10 | 63.30 | 47.34 | 73.38 | 64.90 | 63.41 | 51.70 |
-| 10 | [T] DeepSeek-R1-0528-Qwen3-8B | 26.45 ± 0.62 | 59.93 ± 0.15 | 60.64 | 46.98 | 70.66 | 62.93 | 59.98 | 52.75 |
+| 1 | [T] Qwen3.8-27B | 31.35 ± 0.36 | 65.77 ± 0.41 | 66.98 | 49.03 | 77.37 | 69.38 | 67.15 | 51.93 |
+| 2 | [T] deepseek-v4-pro | 31.27 ± 1.54 | 67.44 ± 0.59 | 67.94 | 51.76 | 82.24 | 72.79 | 67.85 | 53.38 |
+| 3 | [T] Qwen3.5-9B | 30.36 ± 0.59 | 65.33 ± 0.26 | 66.73 | 48.50 | 76.38 | 69.42 | 65.60 | 53.80 |
+| 4 | [T] gemma-4-31B-it | 29.80 ± 0.33 | 64.79 ± 0.42 | 64.57 | 51.29 | 82.12 | 68.89 | 66.11 | 50.66 |
+| 5 | [N] qwen3.8-flash | 29.56 ± 0.51 | 63.39 ± 1.22 | 64.12 | 49.34 | 74.92 | 72.61 | 60.87 | 51.92 |
+| 6 | [T] granite-4.2-3b | 28.95 ± 1.66 | 58.78 ± 0.55 | 62.99 | 39.42 | 53.01 | 60.23 | 58.92 | 53.43 |
+| 7 | [T] gemma-nemotron-4b-bf16-ea | 28.34 ± 0.86 | 62.07 ± 0.15 | 62.60 | 48.25 | 75.22 | 65.31 | 63.03 | 52.19 |
+| 8 | [T] gemma-4-12B-it | 27.82 ± 0.64 | 63.16 ± 0.26 | 64.55 | 50.66 | 68.99 | 64.15 | 65.60 | 52.86 |
+| 9 | [T] qwen3.8-flash | 27.35 ± 0.22 | 65.59 ± 0.59 | 66.03 | 49.89 | 80.80 | 71.82 | 66.18 | 51.13 |
+| 10 | [T] glm-5.3 | 27.06 ± 1.04 | 64.21 ± 0.26 | 65.91 | 45.39 | 73.95 | 66.45 | 67.25 | 47.18 |
 
-The exact vLLM flags and sampling parameters of every row are the committed `configs/<model>.yaml` files.
+The exact vLLM flags, API endpoints and sampling parameters of every row are the committed `configs/<model>.yaml` files.
 
 #### Legacy results — original setting
 

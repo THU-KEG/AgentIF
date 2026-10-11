@@ -1,0 +1,24 @@
+# MiniMax-M2.7 (API, reasoning model without a thinking switch)
+# Official recommendation: T=1.0, top_p=0.95, top_k=40.
+# Evaluated through an OpenAI-compatible gateway; set the endpoint / key in .env and adjust `api.model` to your provider's id.
+backend: api
+model_name: MiniMax-M2.7
+enabled: true
+prediction_num_workers: 4          # external API: 4 concurrent requests per prediction job (the default 32 is for local vLLM)
+max_parallel_jobs: 3               # at most 3 (mode x run) jobs of this model at the same time; use --sequential across models
+
+api:
+  base_url: https://api.minimax.io/v1
+  base_url_env: MODEL_BASE_URL
+  api_key: ""
+  api_key_env: MODEL_API_KEY
+  model: MiniMax-M2.7
+
+model_type: thinking_only
+default_mode: thinking
+modes:
+  thinking:
+    temperature: 1.0
+    top_p: 0.95
+    top_k: 40
+    max_tokens: 32768

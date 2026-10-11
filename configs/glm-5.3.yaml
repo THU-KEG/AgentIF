@@ -1,0 +1,24 @@
+# GLM-5.3 (API, reasoning model)
+# reasoning_effort=max is the vendor's recommendation for leaderboard reproduction; T / top_p are the vendor defaults.
+# Evaluated through an OpenAI-compatible gateway; set the endpoint / key in .env and adjust `api.model` to your provider's id.
+backend: api
+model_name: glm-5.3
+enabled: true
+prediction_num_workers: 4          # external API: 4 concurrent requests per prediction job (the default 32 is for local vLLM)
+max_parallel_jobs: 3               # at most 3 (mode x run) jobs of this model at the same time; use --sequential across models
+
+api:
+  base_url: https://open.bigmodel.cn/api/paas/v4
+  base_url_env: MODEL_BASE_URL
+  api_key: ""
+  api_key_env: MODEL_API_KEY
+  model: glm-5.3
+
+model_type: thinking_only
+default_mode: thinking
+modes:
+  thinking:
+    temperature: 1.0
+    top_p: 0.95
+    max_tokens: 32768
+    extra_body: {"reasoning_effort": "max"}

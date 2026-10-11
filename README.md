@@ -35,38 +35,11 @@ The exact parameters of every evaluated model are the committed `configs/<model>
 
 ## Leaderboard
 
+The leaderboard is maintained at **https://agentif.github.io/**. It lists every evaluated (model, mode) entry under the current setting (judge `gpt-5.6-luna`, vendor-recommended decoding, 3 independent runs reported as mean ± std), with per-dimension breakdowns, and is updated as new models are added. The exact vLLM flags, API endpoints and sampling parameters behind every entry are the committed `configs/<model>.yaml` files.
+
 #### Metrics
 - **Constraint Success Rate (CSR)** measures the proportion of individual constraints that are correctly satisfied by the model's response.
 - **Instruction Success Rate (ISR)** measures the proportion of instructions for which all constraints are satisfied.
-
-> The table below shows the top 10 of the 39 (model, mode) entries evaluated so far (open-weight models from 2B to 31B and several proprietary API models). The full leaderboard is at **https://agentif.github.io/**; more models will be added.
-
-#### Current setting
-
-Judge `gpt-5.6-luna`; every (model, mode) is sampled 3 times independently with the vendor-recommended decoding parameters (see `configs/<model>.yaml`). `[T]` = thinking mode, `[N]` = non-thinking mode. ISR and CSR are mean ± sample std over the 3 runs (sorted by ISR); the remaining columns are the mean CSR per constraint presentation type (Vanilla / Condition / Example) and per constraint type (Formatting / Semantic / Tool).
-
-| # | Model | ISR (%) | CSR (%) | Vanilla | Condition | Example | Formatting | Semantic | Tool |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 | [T] Qwen3.8-27B | 31.35 ± 0.36 | 65.77 ± 0.41 | 66.98 | 49.03 | 77.37 | 69.38 | 67.15 | 51.93 |
-| 2 | [T] deepseek-v4-pro | 31.27 ± 1.54 | 67.44 ± 0.59 | 67.94 | 51.76 | 82.24 | 72.79 | 67.85 | 53.38 |
-| 3 | [T] Qwen3.5-9B | 30.36 ± 0.59 | 65.33 ± 0.26 | 66.73 | 48.50 | 76.38 | 69.42 | 65.60 | 53.80 |
-| 4 | [T] gemma-4-31B-it | 29.80 ± 0.33 | 64.79 ± 0.42 | 64.57 | 51.29 | 82.12 | 68.89 | 66.11 | 50.66 |
-| 5 | [N] qwen3.8-flash | 29.56 ± 0.51 | 63.39 ± 1.22 | 64.12 | 49.34 | 74.92 | 72.61 | 60.87 | 51.92 |
-| 6 | [T] granite-4.2-3b | 28.95 ± 1.66 | 58.78 ± 0.55 | 62.99 | 39.42 | 53.01 | 60.23 | 58.92 | 53.43 |
-| 7 | [T] gemma-nemotron-4b-bf16-ea | 28.34 ± 0.86 | 62.07 ± 0.15 | 62.60 | 48.25 | 75.22 | 65.31 | 63.03 | 52.19 |
-| 8 | [T] gemma-4-12B-it | 27.82 ± 0.64 | 63.16 ± 0.26 | 64.55 | 50.66 | 68.99 | 64.15 | 65.60 | 52.86 |
-| 9 | [T] qwen3.8-flash | 27.35 ± 0.22 | 65.59 ± 0.59 | 66.03 | 49.89 | 80.80 | 71.82 | 66.18 | 51.13 |
-| 10 | [T] glm-5.3 | 27.06 ± 1.04 | 64.21 ± 0.26 | 65.91 | 45.39 | 73.95 | 66.45 | 67.25 | 47.18 |
-
-The exact vLLM flags, API endpoints and sampling parameters of every row are the committed `configs/<model>.yaml` files.
-
-#### Legacy results — original setting
-
-Produced with the original protocol: judge `gpt-4o-2024-11-20` with temperature 0, one greedy run per model, API models called with their default mode. Kept for reference only; not comparable with the table above.
-
-Performance across constraint categories reported in the paper (original setting):
-
-![Logo](images/experiment.png)
 
 ## Quick Start
 

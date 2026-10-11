@@ -63,6 +63,8 @@ bash run.sh --models my-model --repeats 1 --input-dir data/smoke --results-root 
 | `backend` | no | `vllm` | `vllm` = start a local server; `api` = call an existing OpenAI-compatible endpoint |
 | `enabled` | no | `true` | `false` = skipped unless listed explicitly with `--models` |
 | `repeats` | no | `global.yaml` | Independent sampling runs per mode for this model |
+| `prediction_num_workers` | no | `global.yaml` | Concurrent requests per prediction job; lower it (e.g. 4) for rate-limited external APIs |
+| `max_parallel_jobs` | no | all | Cap on simultaneous (mode × run) jobs of this model; use 1-3 for external APIs with limited throughput |
 | `modes` | **yes** | | One entry per mode to evaluate (see below). Single-mode models list one entry |
 | **backend = vllm** | | | |
 | `model_path` | **yes** | | Path or HF repo id given to `vllm serve`. `${VAR}` is expanded from the environment |

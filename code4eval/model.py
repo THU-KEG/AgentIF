@@ -156,63 +156,30 @@ class APIModel:
             retry_count = 0
             while retry_count < max_retries:
                 try:
-                    if "glm" in self.model_name:
-                        # import pdb;pdb.set_trace()
-                        chat_completion = self.client.chat.completions.create(
-                            messages=messages,
-                            model=self.model_name,
-                            temperature=temperature,
-                            max_tokens=max_tokens,
-                            extra_body={
-                                "thinking": {
-                                    "type": "enabled",
-                                },
-                            }
-                        )
-                        response = chat_completion.choices[0].message.content
+                    kwargs = dict(
+                        messages=messages,
+                        model=self.model_name,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+                    if top_p is not None:
+                        kwargs["top_p"] = top_p
+                    if presence_penalty is not None:
+                        kwargs["presence_penalty"] = presence_penalty
+                    if extra_body:
+                        kwargs["extra_body"] = extra_body
+                    chat_completion = self.client.chat.completions.create(**kwargs)
+                    choice = chat_completion.choices[0]
+                    response = choice.message.content
+                    self.last_finish_reason = getattr(choice, "finish_reason", None)
+                    # with --reasoning-parser vLLM returns the thinking part in reasoning_content (or reasoning)
+                    self.last_reasoning = getattr(choice.message, "reasoning_content", None) \
+                        or getattr(choice.message, "reasoning", None) \
+                        or (getattr(choice.message, "model_extra", None) or {}).get("reasoning_content")
+                    self.last_max_tokens = max_tokens
+                    if use_cache:
                         self.cache.save_prompt(messages[-1]["content"], response)
-                        break
-                        # url = self.base_url
-                        # payload = {
-                        #     "model": self.model_name,
-                        #     "messages": messages,
-                        #     "thinking": { "type": "enabled" },
-                        #     "stream": False,
-                        #     "do_sample": True,
-                        #     "temperature": temperature,
-                        #     "top_p": 0.95,
-                        #     "tool_stream": False,
-                        #     "response_format": { "type": "text" }
-                        # }
-                        # chat_completion = requests.post(url, json=payload, headers=self.headers)
-                        # response = chat_completion.json()["choices"][0]["message"]["content"]
-                        # self.cache.save_prompt(messages[-1]["content"], response)
-                        break
-                    else:
-                        kwargs = dict(
-                            messages=messages,
-                            model=self.model_name,
-                            temperature=temperature,
-                            max_tokens=max_tokens,
-                        )
-                        if top_p is not None:
-                            kwargs["top_p"] = top_p
-                        if presence_penalty is not None:
-                            kwargs["presence_penalty"] = presence_penalty
-                        if extra_body:
-                            kwargs["extra_body"] = extra_body
-                        chat_completion = self.client.chat.completions.create(**kwargs)
-                        choice = chat_completion.choices[0]
-                        response = choice.message.content
-                        self.last_finish_reason = getattr(choice, "finish_reason", None)
-                        # with --reasoning-parser vLLM returns the thinking part in reasoning_content (or reasoning)
-                        self.last_reasoning = getattr(choice.message, "reasoning_content", None) \
-                            or getattr(choice.message, "reasoning", None) \
-                            or (getattr(choice.message, "model_extra", None) or {}).get("reasoning_content")
-                        self.last_max_tokens = max_tokens
-                        if use_cache:
-                            self.cache.save_prompt(messages[-1]["content"], response)
-                        break
+                    break
                 except Exception as e:
                     msg = str(e)
                     # prompt + max_tokens exceeds max-model-len: shrink max_tokens to the number reported by the server and retry (not counted as a retry)

@@ -403,7 +403,7 @@ def prediction_cmd(g, c, mcfg, backend, paths):
            "--api_key", backend.api_key,
            "--cache", str(paths["pred_cache"]),
            "--no_cache",
-           "--num_workers", str(g["prediction"]["num_workers"]),
+           "--num_workers", str(c.get("prediction_num_workers", g["prediction"]["num_workers"])),   # per-model override (lower it for rate-limited APIs)
            "--max_tokens", str(mcfg["max_tokens"]),
            "--temperature", str(mcfg["temperature"])]
     if backend.max_model_len:
@@ -637,7 +637,10 @@ def run_model(g, judge, c, args, eval_sem, log_dir, pools):
 
         closer = threading.Thread(target=close_server_when_predictions_done, daemon=True)
         closer.start()
-        with ThreadPoolExecutor(max_workers=len(todo)) as ex:
+        # (mode x run) jobs of one model run concurrently by default; `max_parallel_jobs` in the model config caps
+        # them (e.g. 1-3 for external APIs with limited throughput)
+        n_par = int(c.get("max_parallel_jobs", len(todo)) or len(todo))
+        with ThreadPoolExecutor(max_workers=max(1, min(len(todo), n_par))) as ex:
             futs = [ex.submit(job, m, r) for (m, r) in todo]
             meta["jobs"] = [f.result() for f in futs]
         closer.join(timeout=600)

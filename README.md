@@ -146,10 +146,8 @@ Each data instance in AgentIF is structured as follows:
 
 ## License
 
-The dataset is released under the Creative Commons Attribution 4.0
-International (CC BY 4.0) License.
-
-The code in this repository is released under the Apache License 2.0.
+- **Dataset** (`data/`): The dataset is released under the Creative Commons Attribution 4.0 International ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) License, see [`data/LICENSE`](data/LICENSE).
+- **Code** (everything else): The code in this repository is released under the [Apache License 2.0](LICENSE).
 
 ## Citation
 

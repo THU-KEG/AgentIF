@@ -144,6 +144,11 @@ Each data instance in AgentIF is structured as follows:
 }
 ```
 
+## License
+
+- **Dataset** (`data/`): [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), see [`data/LICENSE`](data/LICENSE).
+- **Code** (everything else): [Apache License 2.0](LICENSE).
+
 ## Citation
 
 ```

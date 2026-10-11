@@ -1,0 +1,22 @@
+The AgentIF dataset (everything under this `data/` directory, in particular `eval.json` and `smoke/eval.json`)
+is licensed under the Creative Commons Attribution 4.0 International License (CC BY 4.0).
+
+Copyright 2025 THU-KEG (Knowledge Engineering Group, Tsinghua University)
+
+You are free to:
+
+  * Share  - copy and redistribute the material in any medium or format
+  * Adapt  - remix, transform, and build upon the material for any purpose, even commercially
+
+under the following terms:
+
+  * Attribution - You must give appropriate credit (cite the AgentIF paper, see the Citation section of the
+    repository README), provide a link to the license, and indicate if changes were made. You may do so in any
+    reasonable manner, but not in any way that suggests the licensor endorses you or your use.
+  * No additional restrictions - You may not apply legal terms or technological measures that legally restrict
+    others from doing anything the license permits.
+
+The full legal code is available at: https://creativecommons.org/licenses/by/4.0/legalcode
+
+The code of this repository (outside `data/`) is licensed separately under the Apache License 2.0, see the
+LICENSE file in the repository root.

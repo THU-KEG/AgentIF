@@ -1,0 +1,34 @@
+# OpenAI gpt-oss-20b: reasoning-only model; reasoning_effort (low / medium / high) sets the depth, there is no on/off switch.
+#   reasoning_effort=low is still thinking and must not be reported as non-thinking. The chat template defaults to
+#   medium -> only medium is evaluated.
+# Sampling: no official T / top_p recommendation -> backend defaults (vLLM: temperature=1.0, top_p=1.0).
+# Harmony format is produced by the model's chat template; do not build the prompt by hand.
+#
+# request_mode: raw_harmony. In about 22% of the instructions the model sends its answer (e.g. the function-call code
+# the prompt asks for) on the Harmony `commentary` channel ("commentary to=python code"). vLLM's chat endpoint always
+# applies Harmony parsing for gpt_oss and, with no tools defined, drops the commentary channel -> empty content.
+# The prediction script therefore calls /tokenize (chat template, reasoning_effort via chat_template_kwargs) +
+# /v1/completions (skip_special_tokens=false) and splits the channels itself: analysis = reasoning, content = final
+# channel, or the last commentary channel verbatim when there is no final.
+# MoE weights are MXFP4 (vLLM's mxfp4 kernels need sm80 or newer).
+backend: vllm
+model_name: gpt-oss-20b
+model_path: ${MODELS_DIR}/gpt-oss-20b
+served_model_name: gpt-oss-20b
+model_type: thinking_only          # reasoning model with configurable effort
+request_mode: raw_harmony          # see above
+default_mode: thinking
+tensor_parallel_size: 1
+max_model_len: 131072              # = max_position_embeddings
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --max-num-seqs 64
+  - --reasoning-parser openai_gptoss
+modes:
+  thinking:                        # = reasoning_effort medium (vendor default)
+    temperature: 1.0               # backend default
+    top_p: 1.0                     # backend default
+    max_tokens: 32768
+    extra_body:
+      reasoning_effort: medium     # changing it changes the compute budget; record it in the leaderboard metadata

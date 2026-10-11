@@ -1,0 +1,31 @@
+# ============ AgentIF global settings ============
+# Relative paths are resolved from the repository root.
+
+# Python used to run code4eval/*.py. Empty = the interpreter that runs batch_eval.py (i.e. `python` of your env).
+eval_python: ""
+# vLLM executable used for backend=vllm models. Empty = `vllm` found on PATH (same env is fine).
+vllm_bin: ""
+
+# Default judge: judge_configs/<judge>.yaml (override with --judge)
+judge: gpt-5.6-luna
+
+# GPU pool for backend=vllm models. "auto" = every GPU reported by nvidia-smi (or CUDA_VISIBLE_DEVICES if set).
+# GPUs with > 2 GB memory already in use are removed from the pool at start-up.
+gpu_pool: "auto"
+# GPUs a model takes by default. "all" = the whole pool (one data-parallel replica per GPU, models run one after
+# another). A model YAML can set `num_gpus: 2` to take fewer GPUs so that several models run in parallel.
+default_num_gpus: "all"
+port_base: 8101                  # first port tried for vLLM servers (incremented, busy ports are skipped)
+
+repeats: 3                       # independent sampling runs per (model, mode); results are reported as mean ± std
+input_dir: data/                 # directory containing eval.json
+results_root: results            # prediction/ , scores/ and summary files are written below this directory
+log_dir: logs
+cache_dir: .cache
+
+prediction:
+  num_workers: 32                # concurrent requests per prediction job (all (mode x run) jobs share one server)
+
+serve:                           # backend=vllm only
+  health_timeout_sec: 2400       # max wait for vLLM to become healthy (weights + CUDA graphs)
+  shutdown_grace_sec: 60

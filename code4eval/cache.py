@@ -10,7 +10,7 @@ class Cache(object):
         self.cache_file = cache_file
         self.cache_dict = self.load_cache()
         self.add_n = 0
-        self.lock = threading.Lock()  # 添加线程锁
+        self.lock = threading.Lock()
 
     def check_prompt(self, prompt):
         prompt = prompt.strip()

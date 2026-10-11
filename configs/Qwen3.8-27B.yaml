@@ -1,0 +1,47 @@
+# Qwen3.8-27B (hybrid, thinking by default; thinking additionally has reasoning_effort = xhigh (default) / medium / low)
+#   reasoning_effort=low is still thinking mode and is not the same as enable_thinking=false.
+# Official sampling:
+#   thinking:     T=1.0, top_p=0.95, top_k=20, min_p=0, presence_penalty=0.0, repetition_penalty=1.0
+#   non-thinking: T=0.7, top_p=0.80, top_k=20, min_p=0, presence_penalty=1.5, repetition_penalty=1.0
+# The vendor suggests very long outputs for agentic tasks; we keep the benchmark default of 32768 for comparability.
+# reasoning_effort is a top-level Chat Completions field (vLLM >= 0.26 forwards it to the chat template); passed via extra_body.
+# bf16 weights are about 55 GB -> tensor_parallel_size=2; with 8 GPUs this gives 4 TP-2 replicas.
+backend: vllm
+model_name: Qwen3.8-27B
+model_path: ${MODELS_DIR}/Qwen3.8-27B
+served_model_name: Qwen3.8-27B
+model_type: hybrid
+default_mode: thinking
+
+tensor_parallel_size: 2
+max_model_len: 262144              # native context (no YaRN)
+
+# Do NOT add --enable-auto-tool-choice / --tool-call-parser (custom textual tool-call format in the prompts).
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --max-num-seqs 64
+  - --reasoning-parser qwen3
+  - --language-model-only          # text-only evaluation, skip the vision encoder
+
+modes:
+  thinking:                        # vendor default: enable_thinking=true + reasoning_effort=xhigh
+    enable_thinking: true
+    temperature: 1.0
+    top_p: 0.95
+    top_k: 20
+    min_p: 0.0
+    presence_penalty: 0.0          # official thinking recommendation is 0 (Qwen3.5 uses 1.5)
+    repetition_penalty: 1.0
+    max_tokens: 32768
+    extra_body:
+      reasoning_effort: xhigh      # vendor default; recorded in the leaderboard metadata because it changes the compute budget
+  non_thinking:
+    enable_thinking: false
+    temperature: 0.7
+    top_p: 0.8
+    top_k: 20
+    min_p: 0.0
+    presence_penalty: 1.5
+    repetition_penalty: 1.0
+    max_tokens: 16384

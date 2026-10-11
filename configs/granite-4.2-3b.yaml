@@ -1,0 +1,29 @@
+# IBM Granite 4.2 3B (hybrid, thinking by default; the additional low_effort mode is not evaluated)
+# Official sampling: temperature=1.0, top_p=0.95 for every mode.
+# The official reasoning parser is the plugin shipped in the model repository (granite_thinking_parser.py);
+# vLLM's built-in `granite` parser targets Granite 3.x and does not apply.
+backend: vllm
+model_name: granite-4.2-3b
+model_path: ${MODELS_DIR}/granite-4.2-3b
+served_model_name: granite-4.2-3b
+model_type: hybrid
+default_mode: thinking
+tensor_parallel_size: 1
+max_model_len: 131072              # value of the official serve example
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --max-num-seqs 64
+  - --reasoning-parser granite_thinking_parser
+  - --reasoning-parser-plugin ${MODELS_DIR}/granite-4.2-3b/granite_thinking_parser.py
+modes:
+  thinking:
+    enable_thinking: true
+    temperature: 1.0
+    top_p: 0.95
+    max_tokens: 32768              # vendor suggests >= 8192; the benchmark default for thinking is 32768
+  non_thinking:
+    enable_thinking: false
+    temperature: 1.0
+    top_p: 0.95
+    max_tokens: 16384

@@ -1,0 +1,17 @@
+# secrets / local settings
+.env
+# symlink to the model's tokenizer.json (see configs/DeepSeek-R1-0528-Qwen3-8B.yaml)
+configs/assets/deepseek_r1_qwen3_8b_tokenizer/tokenizer.json
+
+# evaluation outputs
+results/
+results_*/
+logs/
+.cache/
+*.log
+
+# python
+__pycache__/
+*.pyc
+*.bak
+*.bak_*

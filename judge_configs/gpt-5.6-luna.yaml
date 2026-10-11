@@ -1,0 +1,18 @@
+# Judge used for the AgentIF v2 evaluation setting: gpt-5.6-luna (OpenAI-compatible chat completions API)
+name: gpt-5.6-luna               # used in result directory names: scores/<model>__<mode>/run<N>_<name>/
+backbone: gpt-5.6-luna           # `model` field of the request
+
+# Endpoint and key. Environment variables take precedence over the literal values below.
+base_url: https://api.openai.com/v1
+base_url_env: OPENAI_BASE_URL    # set this to use a proxy / Azure-style gateway
+api_key: ""
+api_key_env: OPENAI_API_KEY
+
+# Inference parameters (do not change if you want numbers comparable to the leaderboard)
+temperature: 1.0                 # gpt-5.6-luna only accepts the default temperature
+max_tokens: 8192                 # sent as max_completion_tokens for gpt-5 family models
+reasoning_effort: medium         # minimal / low / medium / high / none
+
+# Concurrency
+num_workers: 8                   # judge requests in flight per evaluation job
+max_concurrent_jobs: 6           # evaluation jobs running at the same time (protects the judge endpoint)

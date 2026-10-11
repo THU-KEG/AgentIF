@@ -1,0 +1,33 @@
+# DeepSeek-R1-0528-Qwen3-8B: dedicated reasoning checkpoint (Qwen3-8B architecture distilled from R1-0528 traces)
+# The chat template always opens the generation with <think> and has no enable_thinking variable -> not sent.
+# Official sampling: temperature=0.6, top_p=0.95 (the vendor evaluates with up to 64K output tokens; we use the
+# benchmark default of 32768).
+#
+# Tokenizer fix (observed with transformers 5.14): the shipped tokenizer_config.json declares
+# tokenizer_class=LlamaTokenizerFast + legacy=true, which makes the fast tokenizer decode byte-level symbols literally
+# ("Ċsupport", "ĠIĠwill") and even encodes "You are X." without spaces. tokenizer.json itself (Qwen byte-level BPE) is
+# fine. configs/assets/deepseek_r1_qwen3_8b_tokenizer/ holds a corrected tokenizer_config.json
+# (tokenizer_class=PreTrainedTokenizerFast, chat template unchanged); it needs the model's tokenizer.json next to it:
+#
+#   ln -s $MODELS_DIR/DeepSeek-R1-0528-Qwen3-8B/tokenizer.json configs/assets/deepseek_r1_qwen3_8b_tokenizer/
+#
+# (the preflight check reminds you if the file is missing). Do not replace the tokenizer with the one of plain Qwen3-8B.
+backend: vllm
+model_name: DeepSeek-R1-0528-Qwen3-8B
+model_path: ${MODELS_DIR}/DeepSeek-R1-0528-Qwen3-8B
+served_model_name: DeepSeek-R1-0528-Qwen3-8B
+model_type: thinking_only
+default_mode: thinking
+tensor_parallel_size: 1
+max_model_len: 65536               # config.json ships YaRN x4 (32768 -> 131072); 19.5K prompt + 32768 output fits
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --max-num-seqs 64
+  - --reasoning-parser deepseek_r1
+  - --tokenizer configs/assets/deepseek_r1_qwen3_8b_tokenizer
+modes:
+  thinking:
+    temperature: 0.6               # official recommendation
+    top_p: 0.95
+    max_tokens: 32768

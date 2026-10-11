@@ -14,54 +14,128 @@ We introduce **AgentIF**, the first benchmark for systematically **evaluating LL
 An example instruction of AgentIF:
 ![Logo](images/example_1.png)
 
+## News
+
+- **2026-10 — Updated evaluation setting, fixed constraint checkers.** AgentIF now evaluates models in both thinking and non-thinking modes with their vendor-recommended decoding parameters, over 3 independent runs, judged by `gpt-5.6-luna`, through a config-driven pipeline (`run.sh` + `configs/`). We also fixed a number of constraint checkers in `data/eval.json`. See [Evaluation Setting](#evaluation-setting). Scores are not comparable with those of the original setting.
+
+## Evaluation Setting
+
+The original setting (`gpt-4o-2024-11-20` as the judge, greedy decoding with temperature 0 for the evaluated model, default mode only) no longer reflects how current models are released and used: vendors ship explicit thinking / non-thinking modes and recommended sampling parameters, and nobody deploys these models at temperature 0. To evaluate models the way they are actually used, we updated the setting as follows:
+
+- **Judge model:** `gpt-5.6-luna` with temperature 1, `reasoning_effort=medium`, `max_completion_tokens=8192`. Every `llm` constraint is judged by it; `code` constraints run the annotated check function.
+- **Modes:** models that support both thinking and non-thinking are evaluated in **both** modes and reported as separate rows (`chat_template_kwargs.enable_thinking` or the vendor's own switch).
+- **Decoding:** the **vendor-recommended sampling parameters** of each model and mode (temperature, top_p, top_k, min_p, presence / repetition penalty). When the vendor gives none: thinking `T=1.0, top_p=0.95`; non-thinking `T=0.0, top_p=0.95`.
+- **Output budget:** 32768 tokens in thinking mode, 16384 in non-thinking mode, trimmed automatically when prompt + budget exceeds the model's context window.
+- **Runs:** 3 independent samples per (model, mode); we report mean ± sample std.
+- **Empty or failed responses** are scored as an empty response (every constraint fails); nothing is dropped.
+
+The exact parameters of every evaluated model are the committed `configs/<model>.yaml` files; the judge parameters are in `judge_configs/gpt-5.6-luna.yaml`.
+
+**Constraint fixes.** Together with the new setting we fixed a number of constraint checkers in `data/eval.json` (code checks with logic errors that could never pass, and tool-call constraints that now count one constraint per tool and are marked *not applicable* instead of failed when the tool is not invoked). Re-scoring with the fixed data did not change the model ranking or the conclusions of the paper. Please use the current `data/eval.json`.
+
 ## Leaderboard
 
 #### Metrics
-- Constraint Success Rate (CSR) measures the proportion of individual constraints that are correctly satisfied by the model’s response. 
-- Instruction Success Rate (ISR) measures the proportion of instructions for which all constraints are satisfied. 
+- **Constraint Success Rate (CSR)** measures the proportion of individual constraints that are correctly satisfied by the model's response.
+- **Instruction Success Rate (ISR)** measures the proportion of instructions for which all constraints are satisfied.
 
-#### Performance Across Constraint Categories
+> The table below shows the top 10 of the 32 (model, mode) entries evaluated so far (open-weight models from 2B to 31B). The full leaderboard is at **https://agentif.github.io/**; more models will be added.
+
+#### Open-weight models — current setting
+
+Judge `gpt-5.6-luna`; every (model, mode) is sampled 3 times independently with the vendor-recommended decoding parameters (see `configs/<model>.yaml`). `[T]` = thinking mode, `[N]` = non-thinking mode. ISR and CSR are mean ± sample std over the 3 runs (sorted by ISR); the remaining columns are the mean CSR per constraint presentation type (Vanilla / Condition / Example) and per constraint type (Formatting / Semantic / Tool).
+
+| # | Model | ISR (%) | CSR (%) | Vanilla | Condition | Example | Formatting | Semantic | Tool |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | [T] Qwen3.8-27B | 31.35 ± 0.36 | 65.78 ± 0.42 | 67.03 | 48.91 | 77.37 | 69.31 | 67.17 | 51.98 |
+| 2 | [T] Qwen3.5-9B | 30.36 ± 0.59 | 65.34 ± 0.30 | 66.72 | 48.53 | 76.38 | 69.46 | 65.60 | 53.77 |
+| 3 | [T] gemma-4-31B-it | 29.80 ± 0.33 | 64.81 ± 0.39 | 64.60 | 51.29 | 82.12 | 68.89 | 66.12 | 50.75 |
+| 4 | [T] granite-4.2-3b | 28.95 ± 1.66 | 58.82 ± 0.54 | 63.01 | 39.49 | 53.01 | 60.31 | 58.93 | 53.55 |
+| 5 | [T] gemma-nemotron-4b-bf16-ea | 28.43 ± 0.79 | 62.07 ± 0.19 | 62.62 | 48.20 | 75.22 | 65.30 | 63.03 | 52.19 |
+| 6 | [T] gemma-4-12B-it | 27.86 ± 0.71 | 63.16 ± 0.27 | 64.55 | 50.68 | 68.99 | 64.10 | 65.63 | 52.80 |
+| 7 | [N] gemma-4-E4B-it | 26.87 ± 0.14 | 62.94 ± 0.77 | 64.63 | 50.67 | 67.43 | 65.13 | 65.33 | 48.79 |
+| 8 | [N] Qwen3.8-27B | 26.54 ± 0.22 | 62.01 ± 0.67 | 63.05 | 49.97 | 69.46 | 64.57 | 62.86 | 53.38 |
+| 9 | [T] Qwen3.5-4B | 26.50 ± 0.33 | 62.33 ± 1.10 | 63.30 | 47.34 | 73.38 | 64.90 | 63.41 | 51.70 |
+| 10 | [T] DeepSeek-R1-0528-Qwen3-8B | 26.45 ± 0.62 | 59.93 ± 0.15 | 60.64 | 46.98 | 70.66 | 62.93 | 59.98 | 52.75 |
+
+The exact vLLM flags and sampling parameters of every row are the committed `configs/<model>.yaml` files.
+
+#### Legacy results — original setting
+
+Produced with the original protocol: judge `gpt-4o-2024-11-20` with temperature 0, one greedy run per model, API models called with their default mode. Kept for reference only; not comparable with the table above.
+
+Performance across constraint categories reported in the paper (original setting):
 
 ![Logo](images/experiment.png)
 
+## Quick Start
 
-## Evaluation
-For each instruction, we annotate the associated constraints and corresponding evaluation metrics, including code-based evaluation, LLM-based evaluation, and hybrid code-LLM evaluation.
+### 1. Install
 
-### How to evaluation
-1. Clone the remote repository to your local environment. The necessary data is already included, so no further actions are needed.
-    ```
-    git clone https://github.com/THU-KEG/AgentIF.git
-    ```
-    
-2. (Optional) To evaluate a model hosted locally, deploy it using vLLM. Use a command similar to the following:
-    ```bash
-    CUDA_VISIBLE_DEVICES=<CUDA_ID> vllm serve "<your_model_path>" \
-        --served-model-name <your_model_name> \
-        --port 8008 \
-        --tensor-parallel-size <num_gpus> \
-        --max-model-len 32000 \
-        --gpu-memory-utilization 0.9
-    ```
+```bash
+git clone https://github.com/THU-KEG/AgentIF.git && cd AgentIF
+pip install -r requirements.txt            # openai, pyyaml, requests, tqdm, ...
+pip install vllm                           # only for locally served models (vLLM >= 0.26 for the models in configs/)
+```
 
+The dataset (`data/eval.json`, 707 instructions) is included; `data/smoke/eval.json` holds 5 instructions for a quick test.
 
-2. Specify the target model and the evaluator in the `run.sh` file. To reproduce our results, we recommend using `gpt-4o-2024-11-20`.
+### 2. Configure
 
-   ```
-   Model_Name=""             # Name of the model to evaluate
-   Model_Name_URL=""         # Endpoint of the model (e.g., OpenAI API URL or local vLLM URL)
-   Model_Name_API_Key="EMPTY" # Set to "EMPTY" for local vLLM; otherwise, provide your API key
+```bash
+cp .env.example .env     # OPENAI_API_KEY (judge), optional OPENAI_BASE_URL, MODELS_DIR (local weights)
+```
 
-   Evaluator_Model_Backbone=""  # Name of the evaluator model; use `gpt-4o-2024-11-20` for reproducibility
-   Evaluator_URL=""             # Base URL of the evaluator; use `https://api.openai.com/v1` to match our setup
-   Evaluator_API_Key=""         # API key for the evaluator
-   ```
-    
-3. Then run the script to start the evaluation.
-    
-    ```
-    sh run.sh
-    ```
+Pick or add a model config in `configs/`:
+
+- **Local model (vLLM)** — copy one of the shipped configs (e.g. `configs/Qwen3.5-4B.yaml`). Required keys: `model_path` (use `${MODELS_DIR}/<name>` or an absolute path / HF repo id), `max_model_len`, `modes`. `vllm_args` are passed to `vllm serve` verbatim; `served_model_name`, `tensor_parallel_size`, `num_gpus`, `gpus`, `port` are optional.
+- **API model** — copy `configs/api-model.example.yaml` to `configs/<name>.yaml`, set `api.base_url` / `api.model`, put the key in the environment variable named by `api.api_key_env`.
+- Each entry under `modes` is evaluated separately with its own sampling parameters. Use `enable_thinking: true/false` for models that support `chat_template_kwargs`, or `extra_body` for vendor-specific switches. Single-mode models list one mode only.
+
+Global behaviour (GPU pool, number of repeats, default judge, concurrency) lives in `configs/global.yaml`; judge endpoints and parameters in `judge_configs/`. See [`configs/README.md`](configs/README.md) for minimal templates, the full field reference and the conventions used for the leaderboard.
+
+### 3. Run
+
+```bash
+bash run.sh --list                                                       # show configs
+bash run.sh --models Qwen3.5-4B --repeats 1 --input-dir data/smoke --results-root results_smoke   # smoke test
+bash run.sh --models Qwen3.5-4B                                          # full benchmark for one model
+nohup bash run.sh > logs/run.out 2>&1 &                                  # every enabled config
+bash run.sh --stage prediction                                           # predictions only
+bash run.sh --stage evaluation                                           # judge existing predictions (no GPU)
+bash run.sh --judge gpt-4o-2024-11-20                                    # another judge (judge_configs/<name>.yaml)
+```
+
+For every model the pipeline starts vLLM (GPUs are taken from the pool, models run in parallel when the pool allows), runs all (mode × run) predictions concurrently, stops vLLM as soon as the predictions are done, and judges on the API. Finished jobs are detected by their `accuracy.json`, and an interrupted judge job resumes from its `results.partial.jsonl`, so re-running the same command continues where it stopped.
+
+### 4. Results
+
+```
+results/
+  prediction/<model>__<mode>/run<N>/eval.json          # model responses + run_config.json (exact sampling parameters)
+  scores/<model>__<mode>/run<N>_<judge>/eval/
+      results.json                                      # per-constraint scores, judge outputs, null_reason
+      accuracy.json                                     # CSR, ISR, breakdowns by presentation type / constraint type, failure_stats
+  summary.md / summary.json                             # mean ± std over runs for every (model, mode, judge)
+  run_metadata/<model>/run_metadata_<time>.json         # full config snapshot, vLLM version, job status
+logs/                                                   # vLLM, prediction and evaluation logs
+```
+
+`python code4eval/aggregate.py` rebuilds `results/summary.*`; `python code4eval/1.evaluation_api.py --score_only --input_file <results.json>` recomputes an `accuracy.json` without calling the judge.
+
+### Running the scripts directly
+
+`run.sh` is a thin wrapper around `code4eval/batch_eval.py`. The two stages can also be called by hand against any OpenAI-compatible endpoint:
+
+```bash
+python code4eval/0.prediction_api.py --input_dir data/ --output_dir results/prediction/<model>__thinking/run1 \
+    --llm_backbone <served_model_name> --llm_url http://127.0.0.1:8000/v1 --api_key EMPTY \
+    --temperature 1.0 --top_p 0.95 --max_tokens 32768 --enable_thinking true --no_cache
+python code4eval/1.evaluation_api.py --input_file results/prediction/<model>__thinking/run1/eval.json \
+    --output_dir results/scores/<model>__thinking/run1_gpt-5.6-luna --reference_file data/eval.json \
+    --llm_backbone gpt-5.6-luna --llm_url https://api.openai.com/v1 --api_key $OPENAI_API_KEY \
+    --temperature 1.0 --reasoning_effort medium --max_tokens 8192
+```
 
 ## Data Format
 Each data instance in AgentIF is structured as follows:

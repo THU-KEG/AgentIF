@@ -1,0 +1,36 @@
+# OpenBMB MiniCPM5-2B (hybrid; `enable_thinking` switch in the chat template; thinking is emitted as <think>...</think>)
+# Two pitfalls observed with vLLM 0.26:
+#   1) The tokenizer registers <tool_call>, </tool_call>, <function, <parameters> ... as special tokens and vLLM
+#      strips them by default (skip_special_tokens=True), which breaks the XML/tool formats the prompts ask for.
+#      -> both modes pass extra_body.skip_special_tokens=false
+#   2) In non-thinking mode the template ends the prompt with '<think>\n\n</think>\n\n' and the output contains no
+#      think tags, so the deepseek_r1 parser would treat the whole answer as reasoning_content and leave content empty.
+#      -> no reasoning parser; 0.prediction_api.py strips everything up to </think> itself.
+# Official sampling: temperature=1.0, top_p=0.95, min_p=0.0 (same for both modes).
+backend: vllm
+model_name: MiniCPM5-2B
+model_path: ${MODELS_DIR}/MiniCPM5-2B
+served_model_name: MiniCPM5-2B
+model_type: hybrid
+default_mode: thinking
+tensor_parallel_size: 1
+max_model_len: 65536
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --max-num-seqs 64
+modes:
+  thinking:
+    enable_thinking: true
+    temperature: 1.0
+    top_p: 0.95
+    min_p: 0.0
+    max_tokens: 32768
+    extra_body: {"skip_special_tokens": false}
+  non_thinking:
+    enable_thinking: false
+    temperature: 1.0
+    top_p: 0.95
+    min_p: 0.0
+    max_tokens: 16384
+    extra_body: {"skip_special_tokens": false}

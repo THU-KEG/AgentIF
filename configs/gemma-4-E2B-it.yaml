@@ -1,0 +1,30 @@
+# Google Gemma 4 E2B (instruction-tuned); same settings as E4B
+# Official sampling: temperature=1.0, top_p=0.95, top_k=64 for both modes; non-thinking by default (no <|think|>).
+backend: vllm
+model_name: gemma-4-E2B-it
+model_path: ${MODELS_DIR}/gemma-4-E2B-it
+served_model_name: gemma-4-E2B-it
+model_type: hybrid
+default_mode: non_thinking
+tensor_parallel_size: 1
+max_model_len: 65536
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --max-num-seqs 64
+  - --chat-template ${MODELS_DIR}/gemma-4-E2B-it/chat_template.jinja
+  - --reasoning-parser gemma4
+  - --limit-mm-per-prompt '{"image":0,"video":0,"audio":0}'
+modes:
+  thinking:
+    enable_thinking: true
+    temperature: 1.0
+    top_p: 0.95
+    top_k: 64
+    max_tokens: 32768
+  non_thinking:
+    enable_thinking: false
+    temperature: 1.0
+    top_p: 0.95
+    top_k: 64
+    max_tokens: 16384

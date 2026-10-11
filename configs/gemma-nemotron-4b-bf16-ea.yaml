@@ -1,0 +1,37 @@
+# NVIDIA Gemma-Nemotron-4B-BF16 (early access v1.0.0), post-trained from Gemma-4-E4B-it
+# Served with the official vLLM command (vllm/vllm-openai:v0.26.0); official sampling T=1.0, top_p=0.95 for both modes.
+# The model card says thinking is on by default, but chat_template.jinja defaults enable_thinking to false,
+# therefore both modes set it explicitly.
+backend: vllm
+model_name: gemma-nemotron-4b-bf16-ea
+model_path: ${MODELS_DIR}/gemma-nemotron-4b-bf16-ea_v1.0.0-ea
+served_model_name: gemma-nemotron
+model_type: hybrid
+default_mode: thinking
+
+tensor_parallel_size: 1
+max_model_len: 65536               # official value
+
+# Do NOT add --enable-auto-tool-choice / --tool-call-parser: with the parser about 3.5% of the non-thinking
+# responses were swallowed (empty content) because the prompts ask for a custom tool-call text format.
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --kv-cache-dtype auto
+  - --max-num-seqs 64
+  - --max-num-batched-tokens 65536
+  - --chat-template ${MODELS_DIR}/gemma-nemotron-4b-bf16-ea_v1.0.0-ea/chat_template.jinja
+  - --reasoning-parser gemma4
+  - --limit-mm-per-prompt '{"image":0,"video":0,"audio":0}'
+
+modes:
+  thinking:
+    enable_thinking: true
+    temperature: 1.0
+    top_p: 0.95
+    max_tokens: 32768
+  non_thinking:
+    enable_thinking: false
+    temperature: 1.0
+    top_p: 0.95
+    max_tokens: 16384

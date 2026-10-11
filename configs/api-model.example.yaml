@@ -1,0 +1,28 @@
+# Example: a model served behind an OpenAI-compatible API (no vLLM deployment).
+# Files ending in .example.yaml are ignored. Copy to <name>.yaml (and/or set enabled: true) to run it.
+model_name: claude-sonnet-4-20250514        # result directory name
+backend: api
+enabled: false
+
+api:
+  base_url: https://api.example.com/v1
+  base_url_env: MODEL_BASE_URL              # optional: environment variable overriding base_url
+  api_key: ""                               # literal key, or leave empty and use api_key_env
+  api_key_env: MODEL_API_KEY
+  model: claude-sonnet-4-20250514           # `model` field of the request
+  # max_model_len: 200000                   # optional; enables prompt-length based max_tokens trimming via /tokenize (vLLM only)
+
+repeats: 3                                  # optional, overrides global.yaml
+
+modes:
+  # Without `enable_thinking` no chat_template_kwargs is sent (external APIs usually reject it).
+  # Vendor specific thinking switches go through extra_body, e.g. {"thinking": {"type": "enabled"}}.
+  non_thinking:
+    temperature: 0.0
+    top_p: 0.95
+    max_tokens: 16384
+  thinking:
+    temperature: 1.0
+    top_p: 0.95
+    max_tokens: 32768
+    extra_body: {"thinking": {"type": "enabled"}}

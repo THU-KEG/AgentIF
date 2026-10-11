@@ -1,0 +1,40 @@
+# Qwen3.5-9B (hybrid, thinking by default); identical settings to Qwen3.5-4B
+# Official sampling (reasoning-style tasks, both modes): T=1.0, top_p=0.95, top_k=20, min_p=0, presence_penalty=1.5,
+# repetition_penalty=1.0. Official recommended output length: 32768.
+backend: vllm
+model_name: Qwen3.5-9B
+model_path: ${MODELS_DIR}/Qwen3.5-9B
+served_model_name: Qwen3.5-9B
+model_type: hybrid
+default_mode: thinking
+
+tensor_parallel_size: 1
+max_model_len: 262144              # default of the official serve command
+
+# Do NOT add --enable-auto-tool-choice / --tool-call-parser (custom textual tool-call format in the prompts).
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --max-num-seqs 64
+  - --reasoning-parser qwen3
+  - --language-model-only          # text-only evaluation, skip the vision encoder
+
+modes:
+  thinking:
+    enable_thinking: true
+    temperature: 1.0
+    top_p: 0.95
+    top_k: 20
+    min_p: 0.0
+    presence_penalty: 1.5
+    repetition_penalty: 1.0
+    max_tokens: 32768
+  non_thinking:
+    enable_thinking: false
+    temperature: 1.0
+    top_p: 0.95
+    top_k: 20
+    min_p: 0.0
+    presence_penalty: 1.5
+    repetition_penalty: 1.0
+    max_tokens: 16384

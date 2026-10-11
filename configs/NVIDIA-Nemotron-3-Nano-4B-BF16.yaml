@@ -1,0 +1,32 @@
+# NVIDIA Nemotron-3-Nano-4B (hybrid Mamba-Transformer, thinking by default)
+# Official sampling: reasoning T=1.0, top_p=0.95 (tool calling T=0.6). No official non-thinking recipe
+# -> non-thinking uses the benchmark default T=0.0, top_p=0.95.
+# Official serve flags: --trust-remote-code --mamba_ssm_cache_dtype float32 --reasoning-parser nano_v3 (plugin);
+# vLLM >= 0.26 ships the equivalent built-in nemotron_v3 parser.
+# The official --max-num-seqs 8 is a conservative value for the 262144 context; 32 keeps the throughput reasonable.
+backend: vllm
+model_name: NVIDIA-Nemotron-3-Nano-4B-BF16
+model_path: ${MODELS_DIR}/NVIDIA-Nemotron-3-Nano-4B-BF16
+served_model_name: Nemotron-3-Nano-4B
+model_type: hybrid
+default_mode: thinking
+tensor_parallel_size: 1
+max_model_len: 262144              # official value
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --max-num-seqs 32
+  - --trust-remote-code
+  - --mamba-ssm-cache-dtype float32
+  - --reasoning-parser nemotron_v3
+modes:
+  thinking:
+    enable_thinking: true
+    temperature: 1.0
+    top_p: 0.95
+    max_tokens: 32768
+  non_thinking:
+    enable_thinking: false
+    temperature: 0.0               # benchmark default (no official non-thinking recommendation)
+    top_p: 0.95
+    max_tokens: 16384

@@ -1,0 +1,40 @@
+# Google Gemma 4 31B (instruction-tuned, dense); same settings as gemma-4-E4B-it
+# Official sampling: temperature=1.0, top_p=0.95, top_k=64 for both modes.
+# Thinking is switched through the chat template's `enable_thinking` (equivalent to a leading <|think|>); off by default.
+# Note: the non-E Gemma 4 models still emit an empty pair of thought markers with thinking off; the gemma4 parser handles it.
+# bf16 weights are about 63 GB -> tensor_parallel_size=2 (KV cache does not fit next to the weights on one 80 GB GPU);
+# with 8 GPUs this gives 4 TP-2 replicas.
+backend: vllm
+model_name: gemma-4-31B-it
+model_path: ${MODELS_DIR}/gemma-4-31B-it
+served_model_name: gemma-4-31B-it
+model_type: hybrid
+default_mode: non_thinking         # vendor default (no <|think|>)
+
+tensor_parallel_size: 2
+max_model_len: 65536               # longest AgentIF prompt is about 19.5K tokens + 32768 output tokens (model limit 256K)
+
+# Do NOT add --enable-auto-tool-choice / --tool-call-parser (custom textual tool-call format in the prompts).
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --kv-cache-dtype auto
+  - --max-num-seqs 64
+  - --max-num-batched-tokens 65536
+  - --chat-template ${MODELS_DIR}/gemma-4-31B-it/chat_template.jinja
+  - --reasoning-parser gemma4
+  - --limit-mm-per-prompt '{"image":0,"video":0,"audio":0}'
+
+modes:
+  thinking:
+    enable_thinking: true
+    temperature: 1.0               # official recommendation
+    top_p: 0.95
+    top_k: 64
+    max_tokens: 32768
+  non_thinking:
+    enable_thinking: false
+    temperature: 1.0               # official recommendation (overrides the benchmark default of 0.0)
+    top_p: 0.95
+    top_k: 64
+    max_tokens: 16384

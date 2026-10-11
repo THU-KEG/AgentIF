@@ -1,0 +1,7 @@
+# Runtime dependencies of code4eval/ (vLLM is installed separately, see README)
+openai>=1.0
+pyyaml
+requests
+httpx
+tqdm
+filelock

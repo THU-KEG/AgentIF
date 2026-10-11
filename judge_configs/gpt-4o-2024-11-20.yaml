@@ -1,0 +1,13 @@
+# Legacy judge of the original AgentIF paper setting: gpt-4o-2024-11-20, greedy decoding.
+# Not used by default (configs/global.yaml selects gpt-5.6-luna); run with --judge gpt-4o-2024-11-20 to use it.
+name: gpt-4o-2024-11-20
+backbone: gpt-4o-2024-11-20
+base_url: https://api.openai.com/v1
+base_url_env: OPENAI_BASE_URL
+api_key: ""
+api_key_env: OPENAI_API_KEY
+temperature: 0.0                 # with temperature 0 the judge cache is used (identical prompts are not re-judged)
+max_tokens: 8192
+reasoning_effort: none
+num_workers: 8
+max_concurrent_jobs: 6

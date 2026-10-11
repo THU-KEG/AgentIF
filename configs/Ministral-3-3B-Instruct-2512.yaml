@@ -1,0 +1,25 @@
+# Mistral Ministral-3-3B-Instruct-2512: dedicated non-thinking checkpoint (the Reasoning checkpoint is a separate config)
+# Official sampling: temperature=0.1 ("production"); nothing else specified -> top_p uses the benchmark default 0.95.
+# Mistral-format weights: --tokenizer-mode mistral --config-format mistral --load-format mistral.
+# chat_template_kwargs is not supported by the mistral tokenizer mode, therefore no `enable_thinking` here.
+backend: vllm
+model_name: Ministral-3-3B-Instruct-2512
+model_path: ${MODELS_DIR}/Ministral-3-3B-Instruct-2512
+served_model_name: Ministral-3-3B-Instruct-2512
+model_type: non_thinking_only
+default_mode: non_thinking
+tensor_parallel_size: 1
+max_model_len: 65536
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --max-num-seqs 64
+  - --tokenizer-mode mistral
+  - --config-format mistral
+  - --load-format mistral
+  - --limit-mm-per-prompt '{"image":0}'
+modes:
+  non_thinking:
+    temperature: 0.1               # official recommendation
+    top_p: 0.95
+    max_tokens: 16384

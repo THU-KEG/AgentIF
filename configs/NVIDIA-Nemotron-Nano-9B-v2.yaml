@@ -1,0 +1,36 @@
+# NVIDIA Nemotron-Nano-9B-v2 (hybrid Mamba-Transformer, thinking by default)
+# Official sampling: thinking T=0.6, top_p=0.95; non-thinking: greedy (T=0).
+# Official serve flags: --trust-remote-code --mamba_ssm_cache_dtype float32 (NVIDIA warns that omitting it degrades
+# accuracy) --max-model-len 131072.
+# Output format is <think>...</think> + answer. The tokenizer does not register <think> / </think> as single tokens, so
+# vLLM's deepseek_r1 / qwen3 parsers fail at start-up -> no reasoning parser; 0.prediction_api.py strips everything up
+# to the last "</think>" itself (the official vLLM command also runs without a parser).
+#
+# Important: the chat template ignores chat_template_kwargs.enable_thinking and only reacts to "/think" / "/no_think"
+# in the system or user text (thinking when neither is present; the keyword is removed from the system content).
+# non_thinking therefore prepends {"role": "system", "content": "/no_think"} to every instruction through a mode-level
+# system_prompt_prefix_json (the instruction's own system prompt is appended after it), as in the official README.
+backend: vllm
+model_name: NVIDIA-Nemotron-Nano-9B-v2
+model_path: ${MODELS_DIR}/NVIDIA-Nemotron-Nano-9B-v2
+served_model_name: Nemotron-Nano-9B-v2
+model_type: hybrid
+default_mode: thinking
+tensor_parallel_size: 1
+max_model_len: 131072              # value of the official serve example (= max_position_embeddings)
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --max-num-seqs 64
+  - --trust-remote-code
+  - --mamba-ssm-cache-dtype float32
+modes:
+  thinking:                        # no enable_thinking: the template defaults to thinking
+    temperature: 0.6               # official recommendation
+    top_p: 0.95
+    max_tokens: 32768
+  non_thinking:                    # official recommendation: greedy; thinking is switched off with the "/no_think" prefix
+    system_prompt_prefix_json: configs/assets/nemotron_nano_v2_no_think.json
+    temperature: 0.0
+    top_p: 0.95
+    max_tokens: 16384

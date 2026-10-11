@@ -1,0 +1,37 @@
+# Google Gemma 4 E4B (instruction-tuned)
+# Official sampling: temperature=1.0, top_p=0.95, top_k=64 for both modes.
+# Thinking is switched through the chat template's `enable_thinking` (equivalent to a leading <|think|>); off by default.
+backend: vllm
+model_name: gemma-4-E4B-it
+model_path: ${MODELS_DIR}/gemma-4-E4B-it
+served_model_name: gemma-4-E4B-it
+model_type: hybrid                 # supports thinking and non-thinking
+default_mode: non_thinking         # vendor default (no <|think|>)
+
+tensor_parallel_size: 1
+max_model_len: 65536               # longest AgentIF prompt is about 19.5K tokens + 32768 output tokens
+
+# Do NOT add --enable-auto-tool-choice / --tool-call-parser (see README: custom tool-call format in the prompts).
+vllm_args:
+  - --dtype bfloat16
+  - --gpu-memory-utilization 0.85
+  - --kv-cache-dtype auto
+  - --max-num-seqs 64
+  - --max-num-batched-tokens 65536
+  - --chat-template ${MODELS_DIR}/gemma-4-E4B-it/chat_template.jinja
+  - --reasoning-parser gemma4
+  - --limit-mm-per-prompt '{"image":0,"video":0,"audio":0}'
+
+modes:
+  thinking:
+    enable_thinking: true
+    temperature: 1.0               # official recommendation
+    top_p: 0.95
+    top_k: 64
+    max_tokens: 32768
+  non_thinking:
+    enable_thinking: false
+    temperature: 1.0               # official recommendation (overrides the benchmark default of 0.0)
+    top_p: 0.95
+    top_k: 64
+    max_tokens: 16384
